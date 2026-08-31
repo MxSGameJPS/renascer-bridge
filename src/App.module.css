@@ -1,0 +1,156 @@
+.overlay {
+  width: 100%;
+  min-height: 100vh;
+  padding: 22px;
+  background: #f7f4ed;
+  color: #25231f;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.header small,
+.result small {
+  color: #84621f;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.header h1 {
+  margin: 2px 0 0;
+  font-size: 1.8rem;
+}
+
+.close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: #eae4d8;
+  color: #514a40;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #6d665c;
+  font-size: 0.78rem;
+}
+
+.online,
+.offline {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.online {
+  background: #2e7d4f;
+}
+
+.offline {
+  background: #b5483d;
+}
+
+.form {
+  margin-top: 22px;
+}
+
+.form label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.inputRow input,
+.inputRow button {
+  height: 48px;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.inputRow input {
+  min-width: 0;
+  border: 1px solid #cfc5b4;
+  padding: 0 13px;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  outline: none;
+}
+
+.inputRow input:focus {
+  border-color: #84621f;
+  box-shadow: 0 0 0 3px rgba(132, 98, 31, 0.12);
+}
+
+.inputRow button {
+  border: 1px solid #2c5e43;
+  padding: 0 17px;
+  background: #2c5e43;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.instructions,
+.result {
+  margin-top: 17px;
+  border: 1px solid #ded5c7;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+}
+
+.instructions strong,
+.result strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.instructions p,
+.result p {
+  margin: 0;
+  color: #6d665c;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.result[data-state="recognized"] {
+  border-color: #a9cbb5;
+  background: #f3faf5;
+}
+
+.result[data-state="external"] {
+  border-color: #d9c9a8;
+  background: #fffaf0;
+}
+
+.result strong {
+  margin-top: 2px;
+  font-size: 1.2rem;
+}
+
+.footer {
+  margin-top: 13px;
+  color: #8a8276;
+  font-size: 0.72rem;
+  text-align: center;
+}
