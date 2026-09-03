@@ -14,7 +14,7 @@ export default function App() {
   const [showConfig, setShowConfig] = useState(false);
   const [configStatus, setConfigStatus] = useState({ configured: false, apiUrl: "", tokenConfigured: false });
   const [configForm, setConfigForm] = useState({ apiUrl: "", token: "" });
-  const [bridgeStatus, setBridgeStatus] = useState({ shortcut: "F8", shortcutRegistered: false });
+  const [bridgeStatus, setBridgeStatus] = useState({ shortcut: "Control+Alt+R", shortcutRegistered: false });
 
   function focusInput() {
     window.setTimeout(() => inputRef.current?.focus(), 60);
@@ -212,7 +212,7 @@ export default function App() {
                 id="bridge-code"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
-                placeholder="C105 ou DV7K3M9Q2X"
+                placeholder="105, C105 ou DV7K3M9Q2X"
                 autoComplete="off"
                 spellCheck="false"
                 disabled={busy}
@@ -225,8 +225,8 @@ export default function App() {
 
           {!localResult && !preview && !error && (
             <section className={styles.instructions}>
-              <strong>Consulta segura habilitada</strong>
-              <p>O Bridge consulta a API e mostra a prévia dos itens. Nesta fase nenhum código é digitado automaticamente no GeMaster.</p>
+              <strong>Entrada rápida do caixa</strong>
+              <p>Digite somente o número da comanda, como 105, ou o código DV do Delivery e pressione Enter.</p>
             </section>
           )}
 
@@ -282,7 +282,7 @@ export default function App() {
         </>
       )}
 
-      <footer className={styles.footer}>ESC fecha o Bridge · EAN/PLU normal continua exclusivo do GeMaster</footer>
+      <footer className={styles.footer}>Ctrl + Alt + R abre · ESC esconde · EAN/PLU normal continua exclusivo do GeMaster</footer>
     </main>
   );
 }
