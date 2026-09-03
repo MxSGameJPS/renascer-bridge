@@ -195,7 +195,8 @@ app.whenReady().then(() => {
   registerShortcut();
   enableWindowsStartup();
 
-  if (!process.argv.includes("--background") && !app.isPackaged) {
+  const launchedInBackground = process.argv.includes("--background");
+  if (!launchedInBackground || !configStore.getStatus().configured) {
     showBridge();
   }
 
