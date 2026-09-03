@@ -1,9 +1,17 @@
 const DELIVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const DELIVERY_PATTERN = new RegExp(`^DV[${DELIVERY_ALPHABET}]{8}$`);
-const COMMAND_PATTERN = /^C([1-9][0-9]{0,17})$/;
+const COMMAND_PATTERN = /^C([1-9][0-9]{0,11})$/;
+const NUMERIC_COMMAND_PATTERN = /^[0-9]{1,12}$/;
 
 export function normalizeBridgeCode(value) {
-  return String(value ?? "").trim().toUpperCase();
+  const normalized = String(value ?? "").trim().toUpperCase();
+
+  if (NUMERIC_COMMAND_PATTERN.test(normalized)) {
+    const commandNumber = normalized.replace(/^0+/, "");
+    return commandNumber ? `C${commandNumber}` : normalized;
+  }
+
+  return normalized;
 }
 
 export function classifyBridgeCode(value) {
