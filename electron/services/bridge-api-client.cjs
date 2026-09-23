@@ -47,9 +47,9 @@ function validateDispatch(data, requestedCode) {
   }
 
   for (const item of data.items) {
-    if (!item || !String(item.external_code || "").trim()) {
-      throw new BridgeApiError(`Item sem código GeMaster: ${item?.product_name || "produto desconhecido"}.`, {
-        code: "MISSING_EXTERNAL_CODE",
+    if (!item || !String(item.external_reference || "").trim()) {
+      throw new BridgeApiError(`Item sem referência GeMaster: ${item?.product_name || "produto desconhecido"}.`, {
+        code: "MISSING_EXTERNAL_REFERENCE",
         retryable: false,
       });
     }
