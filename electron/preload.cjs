@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("renascer", {
     config: () => ipcRenderer.invoke("bridge:config"),
     saveConfig: (input) => ipcRenderer.invoke("bridge:saveConfig", input),
     resolve: (code) => ipcRenderer.invoke("bridge:resolve", code),
+    inject: (dispatch) => ipcRenderer.invoke("bridge:inject", dispatch),
     resize: (mode) => ipcRenderer.invoke("bridge:resize", mode),
     hide: () => ipcRenderer.invoke("bridge:hide"),
     onActivated: (callback) => {
