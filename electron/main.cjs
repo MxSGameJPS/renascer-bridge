@@ -170,11 +170,11 @@ function runPowerShell(script) {
 function buildGemasterSequence(items) {
   const sequence = [];
   for (const item of items || []) {
-    if (item?.requires_weight_handling) throw new Error(\`Produto por peso ainda não pode ser enviado automaticamente: \${item.product_name || "produto"}.\`);
+    if (item?.requires_weight_handling) throw new Error(`Produto por peso ainda não pode ser enviado automaticamente: ${item.product_name || "produto"}.`);
     const code = String(item?.external_code || "").trim();
-    if (!/^[0-9]{1,20}$/.test(code)) throw new Error(\`Código GeMaster inválido para \${item?.product_name || "produto"}.\`);
+    if (!/^[0-9]{1,20}$/.test(code)) throw new Error(`Código GeMaster inválido para ${item?.product_name || "produto"}.`);
     const quantity = Number(item?.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error(\`Quantidade inválida para \${item?.product_name || "produto"}.\`);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error(`Quantidade inválida para ${item?.product_name || "produto"}.`);
     for (let i = 0; i < quantity; i += 1) sequence.push(code);
   }
   if (!sequence.length) throw new Error("Nenhum item disponível para envio.");
@@ -187,8 +187,8 @@ async function injectIntoGemaster(dispatch) {
   hideBridge();
   await sleep(450);
   const encoded = Buffer.from(JSON.stringify(sequence), "utf8").toString("base64");
-  const script = \`
-$codesJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('\${encoded}'))
+  const script = `
+$codesJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))
 $codes = ConvertFrom-Json $codesJson
 $ws = New-Object -ComObject WScript.Shell
 $activated = $false
@@ -203,7 +203,7 @@ foreach ($code in $codes) {
   $ws.SendKeys('{ENTER}')
   Start-Sleep -Milliseconds 350
 }
-\`;
+`;
   await runPowerShell(script);
   return { injectedCount: sequence.length };
 }
