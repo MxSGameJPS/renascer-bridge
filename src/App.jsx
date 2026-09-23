@@ -288,7 +288,7 @@ export default function App() {
                     </div>
                     <div className={styles.codeBox}>
                       <small>CÓDIGO GEMASTER</small>
-                      <strong>{item.external_code}</strong>
+                      <strong>{item.external_reference}</strong>
                       {item.external_ean && <span>EAN {item.external_ean}</span>}
                     </div>
                   </article>
