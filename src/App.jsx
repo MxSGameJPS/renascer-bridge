@@ -11,6 +11,7 @@ export default function App() {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [injecting, setInjecting] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [configStatus, setConfigStatus] = useState({ configured: false, apiUrl: "", tokenConfigured: false });
   const [configForm, setConfigForm] = useState({ apiUrl: "", token: "" });
@@ -96,6 +97,29 @@ export default function App() {
       setLocalResult(null);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function sendToGemaster() {
+    if (!preview || injecting) return;
+    if (preview.items.some((item) => item.requires_weight_handling)) {
+      setError("Esta comanda possui produto por peso. A injeção automática de pesagem ainda não está habilitada.");
+      return;
+    }
+    const totalUnits = preview.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    if (!window.confirm(`Enviar ${totalUnits} lançamento(s) ao GeMaster? Confirme que o PDV está aberto e o cursor está no campo Produto.`)) return;
+    setInjecting(true);
+    setError("");
+    try {
+      const response = await window.renascer.bridge.inject(preview);
+      if (!response.ok) {
+        setError(response.error?.message || "Não foi possível enviar os itens ao GeMaster.");
+        return;
+      }
+      setPreview(null);
+      setCode("");
+    } finally {
+      setInjecting(false);
     }
   }
 
@@ -272,11 +296,12 @@ export default function App() {
               </div>
 
               <div className={styles.safeNotice}>
-                <strong>Prévia somente</strong>
-                <span>Despacho {preview.dispatch_id}. Nenhum item foi injetado no GeMaster e nenhum pagamento foi registrado.</span>
+                <strong>Pronto para enviar</strong>
+                <span>Despacho {preview.dispatch_id}. Cada unidade será lançada pelo código GeMaster + Enter. Pagamento continua exclusivo do GeMaster.</span>
               </div>
 
-              <button type="button" className={styles.secondaryButton} onClick={resetOverlay}>Consultar outro código</button>
+              <button type="button" className={styles.primaryButton} onClick={sendToGemaster} disabled={injecting}>{injecting ? "Enviando..." : "Enviar ao GeMaster"}</button>
+              <button type="button" className={styles.secondaryButton} onClick={resetOverlay} disabled={injecting}>Consultar outro código</button>
             </section>
           )}
         </>
