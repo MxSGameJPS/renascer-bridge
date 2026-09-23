@@ -9,6 +9,7 @@ const {
   nativeImage,
 } = require("electron");
 const path = require("node:path");
+const { execFile } = require("node:child_process");
 const { BridgeConfigStore } = require("./services/bridge-config.cjs");
 const { BridgeApiClient } = require("./services/bridge-api-client.cjs");
 
@@ -146,6 +147,67 @@ function serializeError(error) {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runPowerShell(script) {
+  return new Promise((resolve, reject) => {
+    execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+      windowsHide: true,
+      timeout: 20000,
+    }, (error, stdout, stderr) => {
+      if (error) {
+        const detail = String(stderr || stdout || error.message || "").trim();
+        reject(new Error(detail || "Falha ao automatizar o GeMaster."));
+        return;
+      }
+      resolve(String(stdout || "").trim());
+    });
+  });
+}
+
+function buildGemasterSequence(items) {
+  const sequence = [];
+  for (const item of items || []) {
+    if (item?.requires_weight_handling) throw new Error(\`Produto por peso ainda não pode ser enviado automaticamente: \${item.product_name || "produto"}.\`);
+    const code = String(item?.external_code || "").trim();
+    if (!/^[0-9]{1,20}$/.test(code)) throw new Error(\`Código GeMaster inválido para \${item?.product_name || "produto"}.\`);
+    const quantity = Number(item?.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error(\`Quantidade inválida para \${item?.product_name || "produto"}.\`);
+    for (let i = 0; i < quantity; i += 1) sequence.push(code);
+  }
+  if (!sequence.length) throw new Error("Nenhum item disponível para envio.");
+  return sequence;
+}
+
+async function injectIntoGemaster(dispatch) {
+  if (process.platform !== "win32") throw new Error("A injeção no GeMaster só está disponível no Windows.");
+  const sequence = buildGemasterSequence(dispatch?.items);
+  hideBridge();
+  await sleep(450);
+  const encoded = Buffer.from(JSON.stringify(sequence), "utf8").toString("base64");
+  const script = \`
+$codesJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('\${encoded}'))
+$codes = ConvertFrom-Json $codesJson
+$ws = New-Object -ComObject WScript.Shell
+$activated = $false
+foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
+  if ($ws.AppActivate($title)) { $activated = $true; break }
+}
+if (-not $activated) { throw 'Janela do GeMaster não encontrada. Abra o PDV e tente novamente.' }
+Start-Sleep -Milliseconds 350
+foreach ($code in $codes) {
+  $ws.SendKeys([string]$code)
+  Start-Sleep -Milliseconds 80
+  $ws.SendKeys('{ENTER}')
+  Start-Sleep -Milliseconds 350
+}
+\`;
+  await runPowerShell(script);
+  return { injectedCount: sequence.length };
+}
+
 function registerIpcHandlers() {
   ipcMain.handle("app:info", () => ({
     version: app.getVersion(),
@@ -174,6 +236,20 @@ function registerIpcHandlers() {
       resizeBridge("expanded");
       return { ok: true, data };
     } catch (error) {
+      return { ok: false, error: serializeError(error) };
+    }
+  });
+
+  ipcMain.handle("bridge:inject", async (_event, dispatch) => {
+    const dispatchId = String(dispatch?.dispatch_id || "").trim();
+    if (!dispatchId) return { ok: false, error: serializeError(new Error("Despacho inválido.")) };
+    try {
+      const result = await injectIntoGemaster(dispatch);
+      await apiClient.updateDispatchStatus(dispatchId, "injected");
+      return { ok: true, data: result };
+    } catch (error) {
+      try { await apiClient.updateDispatchStatus(dispatchId, "failed", error?.message || "Falha na injeção do GeMaster."); } catch {}
+      showBridge();
       return { ok: false, error: serializeError(error) };
     }
   });
