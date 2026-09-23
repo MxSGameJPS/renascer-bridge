@@ -171,8 +171,8 @@ function buildGemasterSequence(items) {
   const sequence = [];
   for (const item of items || []) {
     if (item?.requires_weight_handling) throw new Error(`Produto por peso ainda não pode ser enviado automaticamente: ${item.product_name || "produto"}.`);
-    const code = String(item?.external_code || "").trim();
-    if (!/^[0-9]{1,20}$/.test(code)) throw new Error(`Código GeMaster inválido para ${item?.product_name || "produto"}.`);
+    const code = String(item?.external_reference || "").trim();
+    if (!/^[0-9]{1,20}$/.test(code)) throw new Error(`Referência GeMaster inválida para ${item?.product_name || "produto"}.`);
     const quantity = Number(item?.quantity);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error(`Quantidade inválida para ${item?.product_name || "produto"}.`);
     for (let i = 0; i < quantity; i += 1) sequence.push(code);
