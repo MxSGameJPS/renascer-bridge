@@ -122,6 +122,14 @@ class BridgeApiClient {
     }
   }
 
+  async updateDispatchStatus(dispatchId, status, error = null) {
+    if (!dispatchId) throw new BridgeApiError("Despacho inválido.", { code: "INVALID_DISPATCH" });
+    return this.request(`/api/integrations/bridge/dispatches/${encodeURIComponent(dispatchId)}`, {
+      method: "PATCH",
+      body: { status, error },
+    });
+  }
+
   async resolveReference(value) {
     const code = normalizeReferenceCode(value);
     const operationId = this.getOperation(code);
