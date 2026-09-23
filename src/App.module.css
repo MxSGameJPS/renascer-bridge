@@ -1,6 +1,9 @@
 .overlay {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 22px;
   background: #f7f4ed;
   color: #25231f;
