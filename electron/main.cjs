@@ -12,6 +12,7 @@ const path = require("node:path");
 const { execFile } = require("node:child_process");
 const { BridgeConfigStore } = require("./services/bridge-config.cjs");
 const { BridgeApiClient } = require("./services/bridge-api-client.cjs");
+const { buildGemasterSequence } = require("./services/gemaster-sequence.cjs");
 
 const DEFAULT_SHORTCUT = "Control+Alt+R";
 const shortcut = String(process.env.RENASCER_BRIDGE_SHORTCUT || DEFAULT_SHORTCUT).trim() || DEFAULT_SHORTCUT;
@@ -167,19 +168,6 @@ function runPowerShell(script) {
   });
 }
 
-function buildGemasterSequence(items) {
-  const sequence = [];
-  for (const item of items || []) {
-    if (item?.requires_weight_handling) throw new Error(`Produto por peso ainda não pode ser enviado automaticamente: ${item.product_name || "produto"}.`);
-    const code = String(item?.external_reference || "").trim();
-    if (!/^[0-9]{1,20}$/.test(code)) throw new Error(`Referência GeMaster inválida para ${item?.product_name || "produto"}.`);
-    const quantity = Number(item?.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) throw new Error(`Quantidade inválida para ${item?.product_name || "produto"}.`);
-    for (let i = 0; i < quantity; i += 1) sequence.push(code);
-  }
-  if (!sequence.length) throw new Error("Nenhum item disponível para envio.");
-  return sequence;
-}
 
 async function injectIntoGemaster(dispatch) {
   if (process.platform !== "win32") throw new Error("A injeção no GeMaster só está disponível no Windows.");
@@ -189,7 +177,7 @@ async function injectIntoGemaster(dispatch) {
   const encoded = Buffer.from(JSON.stringify(sequence), "utf8").toString("base64");
   const script = `
 $codesJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))
-$codes = ConvertFrom-Json $codesJson
+$entries = @(ConvertFrom-Json $codesJson)
 $ws = New-Object -ComObject WScript.Shell
 $activated = $false
 foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
@@ -197,10 +185,18 @@ foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
 }
 if (-not $activated) { throw 'Janela do GeMaster não encontrada. Abra o PDV e tente novamente.' }
 Start-Sleep -Milliseconds 350
-foreach ($code in $codes) {
-  $ws.SendKeys([string]$code)
+foreach ($entry in $entries) {
+  $ws.SendKeys([string]$entry.code)
   Start-Sleep -Milliseconds 80
   $ws.SendKeys('{ENTER}')
+  Start-Sleep -Milliseconds 250
+  if ($entry.variable) {
+    $ws.SendKeys('{TAB}')
+    Start-Sleep -Milliseconds 120
+    $ws.SendKeys([string]$entry.value)
+    Start-Sleep -Milliseconds 120
+    $ws.SendKeys('{ENTER}')
+  }
   Start-Sleep -Milliseconds 350
 }
 `;
