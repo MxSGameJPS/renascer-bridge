@@ -102,11 +102,7 @@ export default function App() {
 
   async function sendToGemaster() {
     if (!preview || injecting) return;
-    if (preview.items.some((item) => item.requires_weight_handling)) {
-      setError("Esta comanda possui produto por peso. A injeção automática de pesagem ainda não está habilitada.");
-      return;
-    }
-    const totalUnits = preview.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalUnits = preview.items.reduce((sum, item) => sum + ((item.requires_weight_handling || item.pricing_mode === "variable") ? 1 : Number(item.quantity || 0)), 0);
     if (!window.confirm(`Enviar ${totalUnits} lançamento(s) ao GeMaster? Confirme que o PDV está aberto e o cursor está no campo Produto.`)) return;
     setInjecting(true);
     setError("");
@@ -283,7 +279,7 @@ export default function App() {
                       <strong>{item.product_name}</strong>
                       <span>Qtd. {item.quantity} · {money.format(Number(item.subtotal || 0))}</span>
                       {item.requires_weight_handling && (
-                        <em>Produto pesado: a forma de lançamento será definida no teste com o GeMaster.</em>
+                        <em>Valor variável: código + Enter + Tab + valor total + Enter.</em>
                       )}
                     </div>
                     <div className={styles.codeBox}>
@@ -297,7 +293,7 @@ export default function App() {
 
               <div className={styles.safeNotice}>
                 <strong>Pronto para enviar</strong>
-                <span>Despacho {preview.dispatch_id}. Cada unidade será lançada pelo código GeMaster + Enter. Pagamento continua exclusivo do GeMaster.</span>
+                <span>Despacho {preview.dispatch_id}. Itens unitários: código + Enter. Produtos por peso e personalizados: código + Enter + Tab + valor + Enter. Pagamento continua exclusivo do GeMaster.</span>
               </div>
 
               <button type="button" className={styles.primaryButton} onClick={sendToGemaster} disabled={injecting}>{injecting ? "Enviando..." : "Enviar ao GeMaster"}</button>
