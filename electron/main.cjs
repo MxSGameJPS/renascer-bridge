@@ -155,7 +155,7 @@ function sleep(ms) {
 
 function runPowerShell(script, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
-    execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+    execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-STA", "-ExecutionPolicy", "Bypass", "-Command", script], {
       windowsHide: true,
       timeout: timeoutMs,
     }, (error, stdout, stderr) => {
@@ -177,6 +177,7 @@ async function injectIntoGemaster(dispatch) {
   await sleep(450);
   const encoded = Buffer.from(JSON.stringify(sequence), "utf8").toString("base64");
   const script = `
+Add-Type -AssemblyName System.Windows.Forms
 $codesJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))
 $entries = @(ConvertFrom-Json $codesJson)
 $ws = New-Object -ComObject WScript.Shell
@@ -186,7 +187,8 @@ foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
 }
 if (-not $activated) { throw 'Janela do GeMaster não encontrada. Abra o PDV e tente novamente.' }
 Start-Sleep -Milliseconds 650
-foreach ($entry in $entries) {
+for ($index = 0; $index -lt $entries.Count; $index++) {
+  $entry = $entries[$index]
   $ws.SendKeys([string]$entry.code)
   Start-Sleep -Milliseconds 220
   if ($entry.variable) {
@@ -202,12 +204,27 @@ foreach ($entry in $entries) {
   }
   # Dar tempo ao GeMaster para registrar o item antes de digitar o próximo.
   Start-Sleep -Milliseconds 1100
-  # Não concatenar o código seguinte enquanto o GeMaster processa a linha atual.
-  Start-Sleep -Milliseconds 1400
+  # O GeMaster não expõe confirmação de lançamento. Somente o caixa libera o próximo item.
+  $position = $index + 1
+  $details = if ($entry.variable) { 'Valor total: R$ ' + [string]$entry.value } else { 'Produto por unidade' }
+  $prompt = 'Confira no GeMaster se o item ' + $position + ' de ' + $entries.Count + ' foi registrado.' + [Environment]::NewLine + 'Código: ' + [string]$entry.code + [Environment]::NewLine + $details + [Environment]::NewLine + [Environment]::NewLine + 'SIM: item conferido; continuar. NÃO: interromper sem reenviar automaticamente.'
+  $answer = [System.Windows.Forms.MessageBox]::Show($prompt, 'Renascer Bridge - Conferência obrigatória', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question, [System.Windows.Forms.MessageBoxDefaultButton]::Button2)
+  if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) {
+    throw ('Envio interrompido pelo caixa após o item ' + $position + '. Confira os itens já lançados antes de qualquer nova tentativa.')
+  }
+  if ($position -lt $entries.Count) {
+    $activated = $false
+    foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
+      if ($ws.AppActivate($title)) { $activated = $true; break }
+    }
+    if (-not $activated) { throw 'Janela do GeMaster não encontrada após a conferência. Envio interrompido.' }
+    Start-Sleep -Milliseconds 650
+  }
 }
 `;
   // O timeout acompanha o tamanho da comanda; várias linhas exigem pausas no GeMaster.
-  await runPowerShell(script, Math.max(20000, sequence.length * 4000 + 10000));
+  // A conferência humana não pode expirar enquanto o operador verifica o PDV.
+  await runPowerShell(script, 0);
   return { injectedCount: sequence.length };
 }
 
