@@ -189,16 +189,19 @@ Start-Sleep -Milliseconds 650
 foreach ($entry in $entries) {
   $ws.SendKeys([string]$entry.code)
   Start-Sleep -Milliseconds 220
-  $ws.SendKeys('{ENTER}')
-  # O PDV precisa concluir a busca e retornar ao campo correto antes do próximo lançamento.
-  Start-Sleep -Milliseconds 1100
   if ($entry.variable) {
+    # Pesados/personalizados: código -> Tab -> valor total -> Enter (sem Enter após código).
     $ws.SendKeys('{TAB}')
     Start-Sleep -Milliseconds 350
     $ws.SendKeys([string]$entry.value)
     Start-Sleep -Milliseconds 300
     $ws.SendKeys('{ENTER}')
+  } else {
+    # Produtos por unidade: código -> Enter.
+    $ws.SendKeys('{ENTER}')
   }
+  # Dar tempo ao GeMaster para registrar o item antes de digitar o próximo.
+  Start-Sleep -Milliseconds 1100
   # Não concatenar o código seguinte enquanto o GeMaster processa a linha atual.
   Start-Sleep -Milliseconds 1400
 }
