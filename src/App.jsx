@@ -279,7 +279,7 @@ export default function App() {
                       <strong>{item.product_name}</strong>
                       <span>Qtd. {item.quantity} · {money.format(Number(item.subtotal || 0))}</span>
                       {item.requires_weight_handling && (
-                        <em>Valor variável: código + Enter + Tab + valor total + Enter.</em>
+                        <em>Valor variável: código + Tab + valor total + Enter.</em>
                       )}
                     </div>
                     <div className={styles.codeBox}>
@@ -293,7 +293,7 @@ export default function App() {
 
               <div className={styles.safeNotice}>
                 <strong>Pronto para enviar</strong>
-                <span>Despacho {preview.dispatch_id}. Itens unitários: código + Enter. Produtos por peso e personalizados: código + Enter + Tab + valor + Enter. Pagamento continua exclusivo do GeMaster.</span>
+                <span>Despacho {preview.dispatch_id}. Itens unitários: código + Enter. Produtos por peso e personalizados: código + Tab + valor total + Enter. Confira cada lançamento no GeMaster e confirme antes de prosseguir. Pagamento continua exclusivo do GeMaster.</span>
               </div>
 
               <button type="button" className={styles.primaryButton} onClick={sendToGemaster} disabled={injecting}>{injecting ? "Enviando..." : "Enviar ao GeMaster"}</button>
