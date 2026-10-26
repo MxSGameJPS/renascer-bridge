@@ -30,6 +30,7 @@ let shortcutRegistered = false;
 let configStore = null;
 let apiClient = null;
 let quitting = false;
+let injectionInProgress = false;
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
@@ -184,20 +185,22 @@ foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
   if ($ws.AppActivate($title)) { $activated = $true; break }
 }
 if (-not $activated) { throw 'Janela do GeMaster não encontrada. Abra o PDV e tente novamente.' }
-Start-Sleep -Milliseconds 350
+Start-Sleep -Milliseconds 650
 foreach ($entry in $entries) {
   $ws.SendKeys([string]$entry.code)
-  Start-Sleep -Milliseconds 80
+  Start-Sleep -Milliseconds 220
   $ws.SendKeys('{ENTER}')
-  Start-Sleep -Milliseconds 250
+  # O PDV precisa concluir a busca e retornar ao campo correto antes do próximo lançamento.
+  Start-Sleep -Milliseconds 1100
   if ($entry.variable) {
     $ws.SendKeys('{TAB}')
-    Start-Sleep -Milliseconds 120
+    Start-Sleep -Milliseconds 350
     $ws.SendKeys([string]$entry.value)
-    Start-Sleep -Milliseconds 120
+    Start-Sleep -Milliseconds 300
     $ws.SendKeys('{ENTER}')
   }
-  Start-Sleep -Milliseconds 350
+  # Não concatenar o código seguinte enquanto o GeMaster processa a linha atual.
+  Start-Sleep -Milliseconds 1400
 }
 `;
   await runPowerShell(script);
@@ -239,6 +242,8 @@ function registerIpcHandlers() {
   ipcMain.handle("bridge:inject", async (_event, dispatch) => {
     const dispatchId = String(dispatch?.dispatch_id || "").trim();
     if (!dispatchId) return { ok: false, error: serializeError(new Error("Despacho inválido.")) };
+    if (injectionInProgress) return { ok: false, error: serializeError(new Error("Uma comanda já está sendo enviada ao GeMaster. Aguarde a conclusão.")) };
+    injectionInProgress = true;
     try {
       const result = await injectIntoGemaster(dispatch);
       await apiClient.updateDispatchStatus(dispatchId, "injected");
@@ -247,6 +252,8 @@ function registerIpcHandlers() {
       try { await apiClient.updateDispatchStatus(dispatchId, "failed", error?.message || "Falha na injeção do GeMaster."); } catch {}
       showBridge();
       return { ok: false, error: serializeError(error) };
+    } finally {
+      injectionInProgress = false;
     }
   });
 
