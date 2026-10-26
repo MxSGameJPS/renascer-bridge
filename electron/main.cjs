@@ -153,11 +153,11 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function runPowerShell(script) {
+function runPowerShell(script, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
       windowsHide: true,
-      timeout: 20000,
+      timeout: timeoutMs,
     }, (error, stdout, stderr) => {
       if (error) {
         const detail = String(stderr || stdout || error.message || "").trim();
@@ -206,7 +206,8 @@ foreach ($entry in $entries) {
   Start-Sleep -Milliseconds 1400
 }
 `;
-  await runPowerShell(script);
+  // O timeout acompanha o tamanho da comanda; várias linhas exigem pausas no GeMaster.
+  await runPowerShell(script, Math.max(20000, sequence.length * 4000 + 10000));
   return { injectedCount: sequence.length };
 }
 
