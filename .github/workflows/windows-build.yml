@@ -30,6 +30,10 @@ jobs:
         shell: powershell
         run: npm test
 
+      - name: Test GeMaster PowerShell product separation
+        shell: powershell
+        run: ./scripts/test-gemaster-powershell.ps1
+
       - name: Build Windows executables
         shell: powershell
         run: npm run dist:win
