@@ -26,6 +26,10 @@ jobs:
         shell: powershell
         run: npm install
 
+      - name: Validate Electron main process syntax
+        shell: powershell
+        run: node --check electron/main.cjs
+
       - name: Test code parser
         shell: powershell
         run: npm test
