@@ -189,36 +189,43 @@ if (-not $activated) { throw 'Janela do GeMaster não encontrada. Abra o PDV e t
 Start-Sleep -Milliseconds 650
 for ($index = 0; $index -lt $entries.Count; $index++) {
   $entry = $entries[$index]
+  $position = $index + 1
+  $details = if ($entry.variable) { 'Valor total: R$ ' + [string]$entry.value } else { 'Produto por unidade' }
+  # Conferência antes de cada digitação: o caixa precisa deixar o cursor no campo Produto.
+  $prompt = 'Lançamento ' + $position + ' de ' + $entries.Count + [Environment]::NewLine + 'Código: ' + [string]$entry.code + [Environment]::NewLine + $details + [Environment]::NewLine + [Environment]::NewLine + 'No GeMaster, deixe o campo PRODUTO selecionado antes de continuar.' + [Environment]::NewLine + 'SIM: enviar somente este item. NÃO: interromper.'
+  $answer = [System.Windows.Forms.MessageBox]::Show($prompt, 'Renascer Bridge - Envio controlado', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question, [System.Windows.Forms.MessageBoxDefaultButton]::Button2)
+  if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) {
+    throw ('Envio interrompido antes do item ' + $position + '. Confira os produtos já lançados para evitar duplicidade.')
+  }
+  $activated = $false
+  foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
+    if ($ws.AppActivate($title)) { $activated = $true; break }
+  }
+  if (-not $activated) { throw 'Janela do GeMaster não encontrada. Envio interrompido.' }
+  Start-Sleep -Milliseconds 650
+  # Substituir o conteúdo do campo Produto evita concatenar código novo com código antigo.
+  # Esta operação pressupõe que o caixa está com foco no campo Produto.
+  $ws.SendKeys('^a')
+  Start-Sleep -Milliseconds 180
   $ws.SendKeys([string]$entry.code)
   Start-Sleep -Milliseconds 220
   if ($entry.variable) {
-    # Pesados/personalizados: código -> Tab -> valor total -> Enter (sem Enter após código).
+    # Pesados/personalizados: código -> Tab -> valor total -> Enter.
     $ws.SendKeys('{TAB}')
     Start-Sleep -Milliseconds 350
+    $ws.SendKeys('^a')
+    Start-Sleep -Milliseconds 180
     $ws.SendKeys([string]$entry.value)
     Start-Sleep -Milliseconds 300
     $ws.SendKeys('{ENTER}')
   } else {
-    # Produtos por unidade: código -> Enter.
+    # Unitários: código -> Enter.
     $ws.SendKeys('{ENTER}')
   }
-  # Dar tempo ao GeMaster para registrar o item antes de digitar o próximo.
-  Start-Sleep -Milliseconds 1100
-  # O GeMaster não expõe confirmação de lançamento. Somente o caixa libera o próximo item.
-  $position = $index + 1
-  $details = if ($entry.variable) { 'Valor total: R$ ' + [string]$entry.value } else { 'Produto por unidade' }
-  $prompt = 'Confira no GeMaster se o item ' + $position + ' de ' + $entries.Count + ' foi registrado.' + [Environment]::NewLine + 'Código: ' + [string]$entry.code + [Environment]::NewLine + $details + [Environment]::NewLine + [Environment]::NewLine + 'SIM: item conferido; continuar. NÃO: interromper sem reenviar automaticamente.'
-  $answer = [System.Windows.Forms.MessageBox]::Show($prompt, 'Renascer Bridge - Conferência obrigatória', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question, [System.Windows.Forms.MessageBoxDefaultButton]::Button2)
-  if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) {
-    throw ('Envio interrompido pelo caixa após o item ' + $position + '. Confira os itens já lançados antes de qualquer nova tentativa.')
-  }
-  if ($position -lt $entries.Count) {
-    $activated = $false
-    foreach ($title in @('Sistema GeMaster - PDV','GeMaster - PDV','GeMaster')) {
-      if ($ws.AppActivate($title)) { $activated = $true; break }
-    }
-    if (-not $activated) { throw 'Janela do GeMaster não encontrada após a conferência. Envio interrompido.' }
-    Start-Sleep -Milliseconds 650
+  Start-Sleep -Milliseconds 900
+  $check = [System.Windows.Forms.MessageBox]::Show('O GeMaster registrou corretamente o item ' + $position + ' (código ' + [string]$entry.code + ')?' + [Environment]::NewLine + 'SIM: permitir o próximo. NÃO: interromper para conferir a venda.', 'Renascer Bridge - Conferir lançamento', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question, [System.Windows.Forms.MessageBoxDefaultButton]::Button2)
+  if ($check -ne [System.Windows.Forms.DialogResult]::Yes) {
+    throw ('Conferência não confirmada após o item ' + $position + '. Confira a venda no GeMaster antes de tentar novamente; não reenvie a comanda inteira.')
   }
 }
 `;
